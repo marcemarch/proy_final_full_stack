@@ -1,56 +1,42 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-
-import {
-  DndContext,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from '@dnd-kit/core';
-
+import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
 import { projectsService } from '../api/projects.service';
 import { tasksService } from '../api/tasks.service';
-
 import type { Project, Task, TaskStatus } from '../types';
-
 import { KANBAN_COLUMNS } from '../config/kanban';
 import { KanbanColumn } from '../components/KanbanColumn';
+import { DroppableColumn } from '../components/DroppableColumn';
 import { CreateTaskModal } from '../components/CreateTaskModal';
+import { EditTaskModal } from '../components/EditTaskModal';
+import { TaskCommentsModal } from '../components/TaskCommentsModal';
 
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [project, setProject] = useState<Project | null>(null);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [showModal, setShowModal] = useState(false);
-
-  // Sensores de Drag & Drop
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 5,
-      },
-    })
-  );
+  const [project,        setProject]        = useState<Project | null>(null);
+  const [tasks,          setTasks]          = useState<Task[]>([]);
+  const [loading,        setLoading]        = useState(true);
+  const [error,          setError]          = useState('');
+  const [showModal,        setShowModal]        = useState(false);
+  const [showEditModal,    setShowEditModal]    = useState(false);
+  const [editingTask,      setEditingTask]      = useState<Task | null>(null);
+  const [showCommentsModal, setShowCommentsModal] = useState(false);
+  const [commentingTask,   setCommentingTask]   = useState<Task | null>(null);
+  const [draggingTaskId,  setDraggingTaskId]   = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     if (!id) return;
-
     setLoading(true);
-
     try {
       const [proj, taskList] = await Promise.all([
         projectsService.getById(id),
         tasksService.getByProject(id),
       ]);
-
       setProject(proj);
       setTasks(taskList);
-      setError('');
     } catch {
       setError('No se pudo cargar el proyecto');
     } finally {
@@ -58,147 +44,153 @@ export default function ProjectDetailPage() {
     }
   }, [id]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  // Cambiar estado (optimistic update)
-  const handleStatusChange = async (
-    taskId: string,
-    newStatus: TaskStatus
-  ) => {
-    setTasks((prev) =>
-      prev.map((task) =>
-        task.id === taskId
-          ? { ...task, status: newStatus }
-          : task
-      )
-    );
-
+  const handleStatusChange = async (taskId: string, newStatus: TaskStatus) => {
+    // Actualización optimista: cambiar en UI antes de la respuesta del servidor
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
     try {
-      await tasksService.update(taskId, {
-        status: newStatus,
-      });
+      await tasksService.update(taskId, { status: newStatus });
     } catch {
+      // Si falla, recargar desde el servidor
       loadData();
     }
   };
 
-  // Evento al soltar una tarjeta
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-
-    if (!over) return;
-
-    const taskId = String(active.id);
-    const newStatus = over.id as TaskStatus;
-
-    const task = tasks.find((t) => t.id === taskId);
-
-    if (!task) return;
-
-    if (task.status === newStatus) return;
-
-    await handleStatusChange(taskId, newStatus);
-  };
-
   const handleDelete = async (taskId: string) => {
-    if (!window.confirm('¿Eliminar esta tarea?')) return;
-
-    setTasks((prev) => prev.filter((task) => task.id !== taskId));
-
+    if (!confirm('¿Eliminar esta tarea?')) return;
+    setTasks(prev => prev.filter(t => t.id !== taskId));
     try {
       await tasksService.remove(taskId);
     } catch {
-      loadData();
+      loadData(); // Revertir si falla
     }
   };
 
   const handleTaskCreated = (newTask: Task) => {
-    setTasks((prev) => [newTask, ...prev]);
+    setTasks(prev => [newTask, ...prev]);
     setShowModal(false);
   };
 
-  const tasksByStatus = KANBAN_COLUMNS.reduce(
-    (acc, column) => {
-      acc[column.id] = tasks.filter(
-        (task) => task.status === column.id
-      );
-      return acc;
-    },
-    {} as Record<TaskStatus, Task[]>
-  );
+<<<<<<< HEAD
+  const sensors = useSensors(useSensor(PointerSensor, {
+    activationConstraint: { distance: 8 },
+  }));
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
-      </div>
-    );
-  }
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+    const taskId = active.id as string;
+    const newStatus = over.id as TaskStatus;
+    if (tasks.find(t => t.id === taskId)?.status === newStatus) return;
+    handleStatusChange(taskId, newStatus);
+=======
+  const handleEdit = (task: Task) => {
+    setEditingTask(task);
+    setShowEditModal(true);
+  };
+
+  const handleComments = (task: Task) => {
+    setCommentingTask(task);
+    setShowCommentsModal(true);
+  };
+
+  const handleTaskUpdated = (updatedTask: Task) => {
+    setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
+    setShowEditModal(false);
+    setEditingTask(null);
+  };
+
+  const handleDragStart = (taskId: string) => {
+    setDraggingTaskId(taskId);
+  };
+
+  const handleDragEnd = () => {
+    setDraggingTaskId(null);
+  };
+
+  const handleDrop = async (newStatus: TaskStatus) => {
+    if (!draggingTaskId) return;
+    const task = tasks.find(t => t.id === draggingTaskId);
+    if (task && task.status !== newStatus) {
+      await handleStatusChange(draggingTaskId, newStatus);
+    }
+    setDraggingTaskId(null);
+>>>>>>> quinta_clase
+  };
+
+  // Agrupar tareas por estado para el Kanban
+  const tasksByStatus = KANBAN_COLUMNS.reduce((acc, col) => {
+    acc[col.id] = tasks.filter(t => t.status === col.id);
+    return acc;
+  }, {} as Record<TaskStatus, Task[]>);
+
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-100">
+      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-slate-100">
       <header className="bg-white border-b border-slate-200 px-6 py-4">
         <div className="max-w-screen-xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/projects')}
-              className="text-slate-400 hover:text-slate-700 text-sm"
-            >
+            <button onClick={() => navigate('/projects')}
+              className="text-slate-400 hover:text-slate-600 text-sm">
               ← Proyectos
             </button>
-
             <span className="text-slate-300">/</span>
-
-            <h1 className="text-lg font-bold text-slate-800">
-              {project?.name}
-            </h1>
+            <h1 className="text-lg font-bold text-slate-800">{project?.name}</h1>
           </div>
-
-          <button
-            onClick={() => setShowModal(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition"
-          >
-            + Nueva tarea
+          <button onClick={() => setShowModal(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white text-sm
+                       font-medium px-4 py-2 rounded-lg transition">
+            + Nueva Tarea
           </button>
         </div>
       </header>
 
-      {error && (
-        <div className="max-w-screen-xl mx-auto px-6 py-3 text-red-600 text-sm">
-          {error}
-        </div>
-      )}
+      {error && <div className="max-w-screen-xl mx-auto p-4">{error}</div>}
 
+      {/* Tablero Kanban */}
       <main className="max-w-screen-xl mx-auto p-6">
-
-        <DndContext
-          sensors={sensors}
-          onDragEnd={handleDragEnd}
-        >
-
+<<<<<<< HEAD
+        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-
-            {KANBAN_COLUMNS.map((column) => (
-              <KanbanColumn
-                key={column.id}
-                config={column}
-                tasks={tasksByStatus[column.id] ?? []}
-                onStatusChange={handleStatusChange}
-                onDelete={handleDelete}
-                onAddTask={
-                  column.id === 'TODO'
-                    ? () => setShowModal(true)
-                    : undefined
-                }
-              />
+            {KANBAN_COLUMNS.map(col => (
+              <DroppableColumn key={col.id} id={col.id}>
+                <KanbanColumn
+                  config={col}
+                  tasks={tasksByStatus[col.id] ?? []}
+                  onStatusChange={handleStatusChange}
+                  onDelete={handleDelete}
+                  onAddTask={col.id === 'TODO' ? () => setShowModal(true) : undefined}
+                />
+              </DroppableColumn>
             ))}
-
           </div>
-
         </DndContext>
-
+=======
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {KANBAN_COLUMNS.map(col => (
+            <KanbanColumn
+              key={col.id}
+              config={col}
+              tasks={tasksByStatus[col.id] ?? []}
+              draggingTaskId={draggingTaskId}
+              onStatusChange={handleStatusChange}
+              onDelete={handleDelete}
+              onEdit={handleEdit}
+              onComments={handleComments}
+              onAddTask={col.id === 'TODO' ? () => setShowModal(true) : undefined}
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              onDrop={handleDrop}
+            />
+          ))}
+        </div>
+>>>>>>> quinta_clase
       </main>
 
       {showModal && project && (
@@ -206,6 +198,21 @@ export default function ProjectDetailPage() {
           projectId={project.id}
           onCreated={handleTaskCreated}
           onClose={() => setShowModal(false)}
+        />
+      )}
+
+      {showEditModal && editingTask && (
+        <EditTaskModal
+          task={editingTask}
+          onUpdated={handleTaskUpdated}
+          onClose={() => { setShowEditModal(false); setEditingTask(null); }}
+        />
+      )}
+
+      {showCommentsModal && commentingTask && (
+        <TaskCommentsModal
+          task={commentingTask}
+          onClose={() => { setShowCommentsModal(false); setCommentingTask(null); }}
         />
       )}
     </div>
