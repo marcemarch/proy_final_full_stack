@@ -1,8 +1,21 @@
+# Dependencias
 node_modules/
+
+# Compilación TypeScript
 dist/
+
+# Variables de entorno
 .env
+.env.*
+
+# Logs
 *.log
-.DS_Store
+
+# Testing
 coverage/
 
-/src/generated/prisma
+# Prisma generado
+src/generated/prisma/
+
+# Sistema
+.DS_Store
