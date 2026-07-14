@@ -13,6 +13,8 @@ import { CreateTaskModal } from '../components/CreateTaskModal';
 import { EditTaskModal } from '../components/EditTaskModal';
 import { TaskCommentsModal } from '../components/TaskCommentsModal';
 
+import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
 
 export default function ProjectDetailPage() {
 
@@ -38,9 +40,15 @@ export default function ProjectDetailPage() {
   const [commentingTask, setCommentingTask] = useState<Task | null>(null);
 
 
-  const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
+  //const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
 
-
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
 
   const loadData = useCallback(async () => {
 
@@ -193,35 +201,21 @@ export default function ProjectDetailPage() {
 
   };
 
+  const handleDragEnd = (event: DragEndEvent) => {
+
+    const { active, over } = event;
 
 
-
-  const handleDragStart = (taskId: string) => {
-
-    setDraggingTaskId(taskId);
-
-  };
+    if (!over) return;
 
 
+    const taskId = active.id as string;
 
-
-  const handleDragEnd = () => {
-
-    setDraggingTaskId(null);
-
-  };
-
-
-
-
-  const handleDrop = async (newStatus: TaskStatus) => {
-
-
-    if (!draggingTaskId) return;
+    const newStatus = over.id as TaskStatus;
 
 
     const task = tasks.find(
-      t => t.id === draggingTaskId
+      t => t.id === taskId
     );
 
 
@@ -230,18 +224,63 @@ export default function ProjectDetailPage() {
       task.status !== newStatus
     ) {
 
-      await handleStatusChange(
-        draggingTaskId,
+      handleStatusChange(
+        taskId,
         newStatus
       );
 
     }
 
+  };
 
-    setDraggingTaskId(null);
+
+
+  /*const handleDragStart = (taskId: string) => {
+
+    setDraggingTaskId(taskId);
 
   };
 
+*/
+
+  /*
+    const handleDragEnd = () => {
+  
+      setDraggingTaskId(null);
+  
+    };*/
+
+
+
+  /*
+    const handleDrop = async (newStatus: TaskStatus) => {
+  
+  
+      if (!draggingTaskId) return;
+  
+  
+      const task = tasks.find(
+        t => t.id === draggingTaskId
+      );
+  
+  
+      if (
+        task &&
+        task.status !== newStatus
+      ) {
+  
+        await handleStatusChange(
+          draggingTaskId,
+          newStatus
+        );
+  
+      }
+  
+  
+      setDraggingTaskId(null);
+  
+    };
+  */
 
 
 
@@ -351,69 +390,54 @@ export default function ProjectDetailPage() {
 
       <main className="max-w-screen-xl mx-auto p-6">
 
+        <DndContext
+          sensors={sensors}
+          onDragEnd={handleDragEnd}
+        >
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-
-
-          {KANBAN_COLUMNS.map(column => (
-
-
-            <KanbanColumn
-
-              key={column.id}
-
-              config={column}
-
-              tasks={
-                tasksByStatus[column.id] ?? []
-              }
-
-              draggingTaskId={
-                draggingTaskId
-              }
-
-              onStatusChange={
-                handleStatusChange
-              }
-
-              onDelete={
-                handleDelete
-              }
-
-              onEdit={
-                handleEdit
-              }
-
-              onComments={
-                handleComments
-              }
-
-              onAddTask={
-                column.id === 'TODO'
-                  ? () => setShowModal(true)
-                  : undefined
-              }
-
-              onDragStart={
-                handleDragStart
-              }
-
-              onDragEnd={
-                handleDragEnd
-              }
-
-              onDrop={
-                handleDrop
-              }
-
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
 
-          ))}
+            {KANBAN_COLUMNS.map(column => (
 
 
-        </div>
+              <KanbanColumn
 
+                key={column.id}
+
+                config={column}
+
+                tasks={
+                  tasksByStatus[column.id] ?? []
+                }
+
+                onStatusChange={
+                  handleStatusChange
+                }
+
+                onDelete={
+                  handleDelete
+                }
+
+                onEdit={
+                  handleEdit
+                }
+
+                onComments={
+                  handleComments
+                }
+
+                onAddTask={
+                  column.id === 'TODO'
+                    ? () => setShowModal(true)
+                    : undefined
+                }
+              />
+            ))}
+
+
+          </div>
+      </DndContext>
 
       </main>
 
@@ -460,10 +484,6 @@ export default function ProjectDetailPage() {
         />
 
       )}
-
-
-
-
 
 
       {showCommentsModal && commentingTask && (

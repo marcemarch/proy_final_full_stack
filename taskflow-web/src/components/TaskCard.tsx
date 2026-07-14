@@ -6,34 +6,12 @@ import { KANBAN_COLUMNS } from '../config/kanban';
 
 
 interface TaskCardProps {
-
   task: Task;
-
-  onStatusChange: (
-    taskId: string,
-    newStatus: TaskStatus
-  ) => void;
-
-  onDelete: (
-    taskId: string
-  ) => void;
-
-  onEdit: (
-    task: Task
-  ) => void;
-
-  onComments: (
-    task: Task
-  ) => void;
-
-  onDragStart: (
-    taskId: string
-  ) => void;
-
-  onDragEnd: () => void;
-
-  isDragging: boolean;
-
+  onStatusChange: (taskId: string, newStatus: TaskStatus) => void;
+  onDelete: (taskId: string) => void;
+  onEdit: (task: Task) => void;
+  onComments: (task: Task) => void;
+  isDragging?: boolean;
 }
 
 
@@ -44,7 +22,7 @@ export function TaskCard({
   onDelete,
   onEdit,
   onComments,
-  isDragging
+  isDragging = false,
 }: TaskCardProps) {
 
 
