@@ -16,14 +16,42 @@ dotenv.config();
 const app: Application = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
 
+
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'https://proy-final-full-stack.vercel.app',
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Permitir peticiones sin Origin (Postman, Swagger, etc.)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error('No permitido por CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
+
 //app.use(cors());
 // Reemplaza app.use(cors()) con esta versión específica:
-app.use(cors({
+/*app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:5174'], 
   credentials: true, 
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], 
   allowedHeaders: ['Content-Type', 'Authorization'], 
 }));
+
+*/
 // Guardar el archivo y reiniciar el backend (Ctrl+C → npm run dev)
 
 app.use(express.json());
