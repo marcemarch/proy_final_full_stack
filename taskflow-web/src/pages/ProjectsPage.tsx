@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { projectsService } from '../api/projects.service';
 import type { Project } from '../types';
+import { EditProjectModal } from '../components/EditProjectModal';
 
 export default function ProjectsPage() {
     const [projects, setProjects] = useState<Project[]>([]);
@@ -13,6 +14,10 @@ export default function ProjectsPage() {
     const [name, setName] = useState('');
     const [desc, setDesc] = useState('');
     const [creating, setCreating] = useState(false);
+
+    const [editingProject, setEditingProject] = useState<Project | null>(null);
+    const [showEditModal, setShowEditModal] = useState(false);
+
     const { user } = useAuth();
     const navigate = useNavigate();
     useEffect(() => {
@@ -21,6 +26,7 @@ export default function ProjectsPage() {
             .catch(() => setError('No se pudieron cargar los proyectos'))
             .finally(() => setLoading(false));
     }, []);
+
     const handleCreate = async (e: FormEvent) => {
         e.preventDefault();
         if (!user || !name.trim()) return;
@@ -35,6 +41,36 @@ export default function ProjectsPage() {
         } catch { setError('Error al crear el proyecto'); }
         finally { setCreating(false); }
     };
+
+    const handleEdit = (project: Project) => {
+        setEditingProject(project);
+        setShowEditModal(true);
+    };
+
+    const handleDelete = async (projectId: string) => {
+        if (!confirm('¿Eliminar este proyecto?')) return;
+        try {
+            await projectsService.remove(projectId);
+            setProjects(prev =>
+                prev.filter(p => p.id !== projectId)
+            );
+        } catch {
+            alert('No se pudo eliminar el proyecto');
+        }
+    };
+
+    const handleProjectUpdated = (updatedProject: Project) => {
+        setProjects(prev =>
+            prev.map(project =>
+                project.id === updatedProject.id
+                    ? updatedProject
+                    : project
+            )
+        );
+        setShowEditModal(false);
+        setEditingProject(null);
+    };
+
     return (
         <div className="min-h-screen bg-slate-100">
             <header className="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center">
@@ -67,8 +103,7 @@ export default function ProjectsPage() {
             <main className="max-w-6xl mx-auto p-6">
                 {loading && <div className="text-center py-12 text-slate-400">Cargando
                     proyectos...</div>}
-                {error && <div className="bg-red-50 border border-red-200 text-red-700
-rounded-lg p-4 mb-4">{error}</div>}
+                {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-4 mb-4">{error}</div>}
                 {!loading && projects.length === 0 && (
                     <div className="text-center py-20">
                         <p className="text-6xl mb-4">📋</p>
@@ -79,22 +114,52 @@ rounded-lg p-4 mb-4">{error}</div>}
                         </button>
                     </div>
                 )}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {projects.map(p => (
-                        <div key={p.id} onClick={() => navigate(`/projects/${p.id}`)}
-                            className="bg-white rounded-xl border border-slate-200 p-5 cursorpointer
-hover:shadow-md hover:border-blue-300 transition">
-                            <h2 className="font-semibold text-slate-800 mb-1
-truncate">{p.name}</h2>
-                            {p.description && <p className="text-slate-500 text-sm line-clamp-
-2 mb-3">{p.description}</p>}
-                            <span className="text-xs bg-slate-100 text-slate-500 px-2 py-1
-rounded-full">
+                        <div
+                            key={p.id}
+                            onClick={() => navigate(`/projects/${p.id}`)}
+                            className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-md hover:border-blue-300 transition relative"  >
+                            <div className="absolute top-3 right-3 flex gap-2">
+
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEdit(p);
+                                    }}
+                                    className="text-slate-400 hover:text-blue-600 transition"
+                                    title="Editar proyecto"
+                                >
+                                    ✏️
+                                </button>
+
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDelete(p.id);
+                                    }}
+                                    className="text-slate-400 hover:text-red-600 transition"
+                                    title="Eliminar proyecto"
+                                >
+                                    🗑️
+                                </button>
+
+                            </div>
+
+
+                            <h2 className="font-semibold text-slate-800 mb-1 truncate">{p.name}</h2>
+                            {p.description && <p className="text-slate-500 text-sm line-clamp-2 mb-3">{p.description}</p>}
+                            <span className="text-xs bg-slate-100 text-slate-500 px-2 py-1 rounded-full">
 
                                 {p._count?.tasks ?? 0} tareas
                             </span>
+
                         </div>
+
                     ))}
+
+
                 </div>
             </main>
             {showModal && (
@@ -142,6 +207,18 @@ text-white text-sm font-semibold px-4 py-2 rounded-lg transition">
                     </div>
                 </div>
             )}
+
+            {showEditModal && editingProject && (
+                <EditProjectModal
+                    project={editingProject}
+                    onUpdated={handleProjectUpdated}
+                    onClose={() => {
+                        setShowEditModal(false);
+                        setEditingProject(null);
+                    }}
+                />
+            )}
+
         </div>
     );
 }
