@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 import { projectsService } from '../api/projects.service';
 import { tasksService } from '../api/tasks.service';
@@ -16,10 +16,17 @@ import { TaskCommentsModal } from '../components/TaskCommentsModal';
 import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
 
-export default function ProjectDetailPage() {
+interface ProjectDetailPageProps {
+  projectId: string;
+  onBack: () => void;
+}
 
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+
+export default function ProjectDetailPage({
+  projectId,
+  onBack,
+}: ProjectDetailPageProps) {
+  //const navigate = useNavigate();
 
 
   const [project, setProject] = useState<Project | null>(null);
@@ -52,21 +59,19 @@ export default function ProjectDetailPage() {
 
   const loadData = useCallback(async () => {
 
-    if (!id) return;
+    if (!projectId) return;
 
     setLoading(true);
 
     try {
 
       const [proj, taskList] = await Promise.all([
-        projectsService.getById(id),
-        tasksService.getByProject(id)
+        projectsService.getById(projectId),
+        tasksService.getByProject(projectId)
       ]);
-
 
       setProject(proj);
       setTasks(taskList);
-
 
     } catch {
 
@@ -78,7 +83,7 @@ export default function ProjectDetailPage() {
 
     }
 
-  }, [id]);
+  }, [projectId]);
 
 
 
@@ -234,57 +239,6 @@ export default function ProjectDetailPage() {
   };
 
 
-
-  /*const handleDragStart = (taskId: string) => {
-
-    setDraggingTaskId(taskId);
-
-  };
-
-*/
-
-  /*
-    const handleDragEnd = () => {
-  
-      setDraggingTaskId(null);
-  
-    };*/
-
-
-
-  /*
-    const handleDrop = async (newStatus: TaskStatus) => {
-  
-  
-      if (!draggingTaskId) return;
-  
-  
-      const task = tasks.find(
-        t => t.id === draggingTaskId
-      );
-  
-  
-      if (
-        task &&
-        task.status !== newStatus
-      ) {
-  
-        await handleStatusChange(
-          draggingTaskId,
-          newStatus
-        );
-  
-      }
-  
-  
-      setDraggingTaskId(null);
-  
-    };
-  */
-
-
-
-
   const tasksByStatus = KANBAN_COLUMNS.reduce(
     (acc, column) => {
 
@@ -304,21 +258,12 @@ export default function ProjectDetailPage() {
 
 
   if (loading) {
-
     return (
-
       <div className="min-h-screen flex items-center justify-center bg-slate-100">
-
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
-
       </div>
-
     );
-
   }
-
-
-
 
 
   return (
@@ -335,7 +280,7 @@ export default function ProjectDetailPage() {
 
 
             <button
-              onClick={() => navigate('/projects')}
+              onClick={onBack}
               className="text-slate-400 hover:text-slate-600 text-sm"
             >
               ← Proyectos
@@ -437,7 +382,7 @@ export default function ProjectDetailPage() {
 
 
           </div>
-      </DndContext>
+        </DndContext>
 
       </main>
 

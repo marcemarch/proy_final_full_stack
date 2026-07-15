@@ -1,58 +1,106 @@
-import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
-const menuItems = [
-  { label: 'Inicio', icon: '🏠', active: true, path: '/dashboard' },
-  { label: 'Tareas', icon: '📋', active: false, path: '/tasks' },
-  { label: 'Proyectos', icon: '📅', active: false, path: '/projects' },
-  { label: 'Configuración', icon: '⚙️', active: false, path: '/settings' },
+import type { Project } from '../types';
+
+import ProjectsPage from './ProjectsPage';
+import ProjectDetailPage from './ProjectDetailPage';
+
+type View =
+  | 'inicio'
+  | 'proyectos'
+  | 'detalleProyecto'
+  | 'tareas'
+  | 'configuracion';
+
+const menuItems: {
+  label: string;
+  icon: string;
+  view: View;
+}[] = [
+  {
+    label: 'Inicio',
+    icon: '🏠',
+    view: 'inicio',
+  },
+  {
+    label: 'Tareas',
+    icon: '📋',
+    view: 'tareas',
+  },
+  {
+    label: 'Proyectos',
+    icon: '📁',
+    view: 'proyectos',
+  },
+  {
+    label: 'Configuración',
+    icon: '⚙️',
+    view: 'configuracion',
+  },
 ];
 
 export default function DashboardPage() {
+
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  const [view, setView] = useState<View>('inicio');
+
+  const [selectedProject, setSelectedProject] =
+    useState<Project | null>(null);
 
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
   };
 
-  const handleMenuClick = (path: string) => {
-    navigate(path);
+  const handleOpenProject = (project: Project) => {
+    setSelectedProject(project);
+    setView('detalleProyecto');
+  };
+
+  const handleBackProjects = () => {
+    setSelectedProject(null);
+    setView('proyectos');
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-100">
+    <div className="min-h-screen flex flex-col bg-slate-100">
 
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="flex items-center justify-between px-6 h-16">
+      {/* HEADER */}
+
+      <header className="bg-white border-b border-slate-200 shadow-sm">
+
+        <div className="h-16 px-6 flex items-center justify-between">
 
           <div className="flex items-center gap-4">
+
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="text-gray-600 hover:text-gray-900 text-xl leading-none"
+              className="text-xl text-slate-600 hover:text-slate-800"
             >
               ☰
             </button>
 
-            <h1 className="text-xl font-bold text-gray-900">
+            <h1 className="text-xl font-bold">
               TaskFlow
             </h1>
-          </div>
 
+          </div>
 
           <div className="flex items-center gap-4">
 
-            <span className="text-sm text-gray-600">
-              {user?.name ?? 'usuario'}
+            <span className="text-sm text-slate-600">
+              {user?.name}
             </span>
 
             <button
               onClick={handleLogout}
-              className="bg-red-600 text-white text-sm rounded px-4 py-2 hover:bg-red-700"
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm"
             >
               Cerrar sesión
             </button>
@@ -60,33 +108,34 @@ export default function DashboardPage() {
           </div>
 
         </div>
+
       </header>
 
+      {/* BODY */}
 
-      {/* Body */}
       <div className="flex flex-1">
 
+        {/* SIDEBAR */}
 
-        {/* Sidebar */}
         <aside
-          className={`bg-white shadow-sm border-r border-gray-200 transition-all duration-200 ${
+          className={`bg-white border-r border-slate-200 shadow-sm transition-all duration-300 ${
             sidebarOpen
-              ? 'w-56'
+              ? 'w-60'
               : 'w-0 overflow-hidden'
           }`}
         >
 
-          <nav className="p-4 space-y-1">
+          <nav className="p-4 space-y-2">
 
-            {menuItems.map((item) => (
+            {menuItems.map(item => (
 
               <button
-                key={item.label}
-                onClick={() => handleMenuClick(item.path)}
-                className={`w-full text-left px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  item.active
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-gray-700 hover:bg-gray-100'
+                key={item.view}
+                onClick={() => setView(item.view)}
+                className={`w-full text-left rounded-lg px-4 py-2 transition ${
+                  view === item.view
+                    ? 'bg-blue-100 text-blue-700'
+                    : 'hover:bg-slate-100 text-slate-700'
                 }`}
               >
 
@@ -104,38 +153,101 @@ export default function DashboardPage() {
 
         </aside>
 
+        {/* CONTENIDO */}
 
+        <main className="flex-1 overflow-auto">
 
-        {/* Main content */}
-        <main className="flex-1 p-6">
+          {view === 'inicio' && (
 
-          <div className="bg-white shadow-md rounded-lg p-8">
+            <div className="p-8">
 
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Bienvenido, {user?.name ?? 'usuario'}
-            </h2>
+              <div className="bg-white rounded-xl shadow p-8">
 
-            <p className="text-gray-600">
-              Este es el panel principal. Acá se mostrarán las tareas y el contenido de la aplicación.
-            </p>
+                <h2 className="text-2xl font-bold mb-2">
+                  Bienvenido al DashBoard de Proyectos, {user?.name}
+                </h2>
 
-          </div>
+                <p className="text-slate-500">
+                  Este es el panel principal de TaskFlow.
+                </p>
+
+              </div>
+
+            </div>
+
+          )}
+
+          {view === 'proyectos' && (
+
+            <ProjectsPage
+              onOpenProject={handleOpenProject}
+            />
+
+          )}
+
+          {view === 'detalleProyecto' &&
+            selectedProject && (
+
+              <ProjectDetailPage
+                projectId={selectedProject.id}
+                onBack={handleBackProjects}
+              />
+
+            )}
+
+          {view === 'tareas' && (
+
+            <div className="p-8">
+
+              <div className="bg-white rounded-xl shadow p-8">
+
+                <h2 className="text-xl font-bold">
+                  Tareas
+                </h2>
+
+                <p className="text-slate-500 mt-2">
+                  Próximamente...
+                </p>
+
+              </div>
+
+            </div>
+
+          )}
+
+          {view === 'configuracion' && (
+
+            <div className="p-8">
+
+              <div className="bg-white rounded-xl shadow p-8">
+
+                <h2 className="text-xl font-bold">
+                  Configuración
+                </h2>
+
+                <p className="text-slate-500 mt-2">
+                  Próximamente...
+                </p>
+
+              </div>
+
+            </div>
+
+          )}
 
         </main>
 
-
       </div>
 
+      {/* FOOTER */}
 
-      {/* Footer */}
-      <footer className="bg-white shadow-sm border-t border-gray-200 px-6 py-4">
+      <footer className="bg-white border-t border-slate-200 py-4">
 
-        <p className="text-sm text-gray-500 text-center">
-          &copy; {new Date().getFullYear()} TaskFlow. Todos los derechos reservados.
+        <p className="text-center text-sm text-slate-500">
+          © {new Date().getFullYear()} TaskFlow
         </p>
 
       </footer>
-
 
     </div>
   );
