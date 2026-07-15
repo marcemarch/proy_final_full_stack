@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+//import { useNavigate } from 'react-router-dom';
 
 import { projectsService } from '../api/projects.service';
 import { tasksService } from '../api/tasks.service';
@@ -26,8 +26,6 @@ export default function ProjectDetailPage({
   projectId,
   onBack,
 }: ProjectDetailPageProps) {
-  //const navigate = useNavigate();
-
 
   const [project, setProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);

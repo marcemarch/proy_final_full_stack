@@ -6,8 +6,8 @@ import RegisterPage   from './pages/RegisterPage';
 import DashboardPage  from './pages/DashboardPage';
 
 import './App.css'
-import ProjectsPage from './pages/ProjectsPage';
-import ProjectDetailPage from './pages/ProjectDetailPage';
+//import ProjectsPage from './pages/ProjectsPage';
+//import ProjectDetailPage from './pages/ProjectDetailPage';
 
 export default function App() {
   return (
@@ -20,8 +20,6 @@ export default function App() {
           {/* Rutas protegidas: usan <Outlet /> dentro de ProtectedRoute */}
           <Route element={<ProtectedRoute />}>
             <Route path="/dashboard" element={<DashboardPage />}/>
-            <Route path="/projects" element={<ProjectsPage />} />
-            <Route path="/projects/:id" element={<ProjectDetailPage />} />
           </Route>
 
           {/* Raiz -> dashboard (si no autenticado, ProtectedRoute va a /login) */}
